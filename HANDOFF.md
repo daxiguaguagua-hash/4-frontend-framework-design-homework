@@ -200,7 +200,56 @@ docker exec homework-postgres psql -U postgres -d appdb -c "\dt"
 - 若本地 PostgreSQL 容器已存在，再次执行 `docker run --name homework-postgres ...` 会报重名错误，此时应直接启动已有容器
 - 当前本地启动命令依赖 `DATABASE_URL`
 - `POST /api/github-profile` 是否成功，还需要使用真实 GitHub token 进行一次完整联调
-- GitHub Actions 文件已经生成，但 AWS 侧的 IAM Role、OIDC、Secrets 还需要后续实际配置
+- GitHub Actions 所需的 OIDC、IAM Role、Secrets 已实际配置过，并已验证工作流可以拿到 AWS 临时凭证
+
+## GitHub Actions / AWS 实际排障记录
+
+以下问题均为本项目在真实 AWS 账号中实际遇到的问题，后续继续部署时应优先参考：
+
+1. `sam build` 在 GitHub Actions 中找不到 `esbuild`
+
+- 现象：工作流在 `Build` 阶段失败，报错 `Cannot find esbuild`
+- 处理：`.github/workflows/deploy.yml` 已改为先执行 `npm ci`，再执行 `npm install -g esbuild`
+- 结论：这不是 AWS 权限问题，而是 CI 构建环境中 `SAM CLI` 没找到 `esbuild` 可执行文件
+
+2. CloudFormation stack 卡在 `ROLLBACK_COMPLETE`
+
+- 现象：`sam deploy` 后 stack 失败并停留在 `ROLLBACK_COMPLETE`
+- 处理：工作流已加入自动检查；若 `hono-sam-homework` 处于 `ROLLBACK_COMPLETE`，会先执行删除，再重新部署
+- 手动删除命令：
+
+```bash
+aws cloudformation delete-stack \
+  --stack-name hono-sam-homework \
+  --profile codex-mcp \
+  --region us-east-2
+```
+
+3. RDS 备份天数不兼容当前免费计划
+
+- 现象：CloudFormation 报错 `The specified backup retention period exceeds the maximum available to free tier customers`
+- 根因：`template.yaml` 中 `BackupRetentionPeriod: 7` 对当前账号计划不兼容
+- 建议：优先尝试改为 `1`
+
+4. RDS 实例规格不兼容当前免费计划
+
+- 现象：CloudFormation 报错 `This instance size isn't available with free plan accounts`
+- 根因：`template.yaml` 中的 `DBInstanceClass` 当前配置对免费计划不兼容
+- 已验证：`db.t4g.micro` 在当前账号计划下会失败
+- 建议：优先尝试 `db.t3.micro`
+
+5. RDS 主密码格式不合法
+
+- 现象：CloudFormation 报错 `MasterUserPassword is not a valid password`
+- 根因：GitHub Secret `DB_PASSWORD` 中使用了 RDS 不接受的字符
+- RDS 明确不接受的字符包括：`/`、`@`、`"`、空格
+- 建议密码示例：`Postgres123456` 或 `HomeworkDb2026`
+
+6. 当前作业的网络目标是 `VPC`，不是 `EC2`
+
+- 说明：作业要求是“服务和数据库放在同一个 `VPC` 中”，不是“都安装在某台 `EC2` 里”
+- 因此当前已停止的 EC2 `i-02625ca93f0975169` 不会直接影响这套 `SAM + Lambda + RDS` 部署流程
+- 当前这台 EC2 仅用于其他 AWS 操作排查时参考，不属于本作业主部署链路
 
 ## 下一步建议
 
@@ -210,7 +259,8 @@ docker exec homework-postgres psql -U postgres -d appdb -c "\dt"
 2. 验证页面上的新增和删除按钮完整闭环
 3. 如需整理前端结构，可把 `index.html` 内联的 `style` 和 `script` 拆成独立文件
 4. 继续讲解或完善 `template.yaml` 中的 VPC、子网、Lambda、RDS 配置
-5. 最后再推进 AWS 实际部署与 GitHub Actions 自动部署
+5. 将 `template.yaml` 中 RDS 配置调整为适配当前免费计划后，再次执行部署
+6. 最后再推进 AWS 实际部署与 GitHub Actions 自动部署
 
 ## 新窗口继续时可直接使用的提示词
 
@@ -226,6 +276,8 @@ docker exec homework-postgres psql -U postgres -d appdb -c "\dt"
 - 本地 Docker PostgreSQL 已跑通过，容器名为 homework-postgres
 - Drizzle 已建表 github_profiles
 - 本地 Hono 服务和 /api/records 已连通数据库
+- GitHub Actions 的 OIDC / IAM Role / Secrets 已完成首轮打通
+- AWS 实际部署时，已确认当前账号会受 RDS 备份天数、实例规格、密码字符规则限制
 
 请先读取项目根目录的 HANDOFF.md，再继续当前任务。
 ```

@@ -12,6 +12,5 @@
     "types": ["node", "aws-lambda"],
     "outDir": "dist"
   },
-  "include": ["src/**/*.ts", "drizzle.config.ts"]
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "drizzle.config.ts"]
 }
-

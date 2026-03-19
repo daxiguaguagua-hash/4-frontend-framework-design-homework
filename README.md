@@ -185,6 +185,42 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/appdb npm run drizzle
 - `AWS_REGION`
 - `DB_PASSWORD`
 
+### 真实部署踩坑记录
+
+本项目在真实 AWS 免费计划账号中已经实际踩过以下问题：
+
+1. `sam build` 在 GitHub Actions 中报 `Cannot find esbuild`
+
+- 解决方式：工作流中使用 `npm ci` 安装依赖，并显式执行 `npm install -g esbuild`
+
+2. CloudFormation stack 失败后停在 `ROLLBACK_COMPLETE`
+
+- 解决方式：部署前先删除坏栈，再重新部署
+- 当前工作流已加入这一检查逻辑
+
+3. RDS 备份天数不兼容当前账号计划
+
+- 错误现象：`The specified backup retention period exceeds the maximum available to free tier customers`
+- 原因：`template.yaml` 中 `BackupRetentionPeriod: 7` 过高
+- 建议：改为 `1`
+
+4. RDS 实例规格不兼容当前账号计划
+
+- 错误现象：`This instance size isn't available with free plan accounts`
+- 已确认：`db.t4g.micro` 在当前账号失败
+- 建议：优先尝试 `db.t3.micro`
+
+5. RDS 主密码不符合字符规则
+
+- 错误现象：`MasterUserPassword is not a valid password`
+- 不应包含的字符：`/`、`@`、`"`、空格
+- 建议先使用仅包含字母和数字的密码
+
+说明：
+
+- 当前作业要求是将 Lambda、RDS 和网络资源放在同一个 `VPC` 中，不是部署到某台 `EC2`
+- 因此 EC2 是否开机，不会直接决定这套 `SAM + Lambda + RDS` 架构能否成功部署
+
 ## 10. 答辩可用总结
 
 本作业采用 `Hono + AWS Lambda + API Gateway + RDS PostgreSQL + Drizzle ORM + SAM + GitHub Actions` 的技术组合，实现了一个可部署的 serverless 全栈应用。系统通过表单获取 GitHub 用户信息，并将数据写入 PostgreSQL，同时提供新增、查询和删除能力。部署层面使用 SAM 管理应用与网络资源，并将 Lambda 和数据库放入同一个 VPC，通过 GitHub Actions 配合 IAM Role 完成自动化部署。

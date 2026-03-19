@@ -244,6 +244,8 @@ Resources:
       BuildProperties:
         EntryPoints:
           - src/lambda.ts
+        Loader:
+          - .html=text
         Minify: false
         Target: es2022
         Sourcemap: true
@@ -261,4 +263,3 @@ Outputs:
   VpcId:
     Description: Application VPC
     Value: !Ref AppVpc
-
