@@ -206,7 +206,7 @@ Resources:
       VPCSecurityGroups:
         - !Ref DatabaseSecurityGroup
       DBSubnetGroupName: !Ref DatabaseSubnetGroup
-      BackupRetentionPeriod: 7
+      BackupRetentionPeriod: 1
       MultiAZ: false
       DeletionProtection: false
       StorageEncrypted: true
