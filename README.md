@@ -166,6 +166,8 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/appdb npm run drizzle
 
 - 本地 Docker PostgreSQL 默认不需要 SSL。
 - AWS RDS 部署时，模板中的 `DATABASE_URL` 已带 `sslmode=require`。
+- 之前单机版本能够直接运行的一个关键原因，是本地开发阶段已经手动执行过上面的 `drizzle:push`，所以 `github_profiles` 表和唯一索引早已存在。
+- 迁移到 AWS 后，如果 `sam deploy` 或 GitHub Actions 没有额外执行数据库初始化，应用虽然能连上 RDS，但仍然会因为缺表或缺少唯一约束而报错。
 
 ## 9. GitHub Actions 部署思路
 

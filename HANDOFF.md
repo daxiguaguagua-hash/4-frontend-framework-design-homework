@@ -113,6 +113,19 @@
 
 - `github_profiles`
 
+补充背景记录：
+
+- 之前单机版本之所以数据库表已经存在，是因为开发过程中手动执行过 Drizzle 推表命令
+- 当时使用过的命令是：
+
+```bash
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/appdb npm run drizzle:push
+```
+
+- 这一步会把 `src/db/schema.ts` 中定义的表结构直接推到本地 PostgreSQL
+- 因此单机版本运行时看起来像是“应用启动后自动可用”，但本质上是因为数据库已经被预先初始化
+- 迁移到 AWS Lambda + RDS 后，如果部署流程里没有显式执行 migration / push，就会出现数据库存在但表不存在，或者表缺少唯一索引的情况
+
 补充说明：
 
 - 本地 Docker PostgreSQL 默认不启用 SSL
