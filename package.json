@@ -1,0 +1,27 @@
+{
+  "name": "hono-sam-github-profile-homework",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --import tsx src/dev.ts",
+    "start": "node --import tsx src/dev.ts",
+    "typecheck": "tsc --noEmit",
+    "drizzle:generate": "drizzle-kit generate",
+    "drizzle:push": "drizzle-kit push"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.2",
+    "drizzle-orm": "^0.44.2",
+    "hono": "^4.9.8",
+    "postgres": "^3.4.7"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.156",
+    "@types/node": "^24.0.1",
+    "drizzle-kit": "^0.31.4",
+    "esbuild": "^0.25.5",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  }
+}

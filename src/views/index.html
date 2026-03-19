@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>
+    4-前端架构设计指南
+  </title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f4ec;
+      --panel: #fffdf8;
+      --text: #1d2433;
+      --muted: #61708a;
+      --accent: #0d6e6e;
+      --accent-strong: #084f4f;
+      --border: #d8d2c4;
+      --danger: #9f2f2f;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      background:
+        radial-gradient(circle at top left, rgba(13, 110, 110, 0.14), transparent 28%),
+        linear-gradient(180deg, #fbf8f1 0%, var(--bg) 100%);
+      color: var(--text);
+    }
+
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 48px 20px 72px;
+    }
+
+    .hero {
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(2rem, 4vw, 3.4rem);
+      line-height: 1.05;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .grid {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+
+    .card {
+      background: rgba(255, 253, 248, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(27, 40, 53, 0.08);
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 16px;
+    }
+
+    button {
+      margin-top: 14px;
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .primary:hover {
+      background: var(--accent-strong);
+    }
+
+    .danger {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid rgba(159, 47, 47, 0.25);
+    }
+
+    .meta {
+      margin-top: 8px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid rgba(216, 210, 196, 0.85);
+    }
+
+    li:last-child {
+      border-bottom: 0;
+    }
+
+    .user {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .login {
+      font-weight: 700;
+    }
+
+    .message {
+      min-height: 24px;
+      margin-top: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <section class="hero">
+      <h1>GitHub Profile Homework</h1>
+      <p>输入 GitHub token 后，后端会调用 GitHub API 获取当前用户资料，并将结果保存到 PostgreSQL。页面同时支持查询和删除记录。</p>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <label for="token">GitHub Personal Access Token</label>
+        <input id="token" type="password" placeholder="ghp_xxx / github_pat_xxx" />
+        <button id="submit" class="primary" type="button">获取并保存 GitHub 用户</button>
+        <div id="message" class="message"></div>
+      </article>
+
+      <article class="card">
+        <h2>已保存记录</h2>
+        <p class="meta">接口：GET /api/records，删除：DELETE /api/records/:id</p>
+        <ul id="records"></ul>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const tokenInput = document.getElementById("token");
+    const submitButton = document.getElementById("submit");
+    const message = document.getElementById("message");
+    const records = document.getElementById("records");
+
+    async function loadRecords() {
+      const response = await fetch("/api/records");
+      const data = await response.json();
+
+      if (!Array.isArray(data.records) || data.records.length === 0) {
+        records.innerHTML = "<li>当前还没有数据，请先保存一个 GitHub 用户。</li>";
+        return;
+      }
+
+      records.innerHTML = data.records.map((item) => {
+        const safeName = item.name ? item.name : "未填写名称";
+        return `
+            <li>
+              <div class="user">
+                <img class="avatar" src="${item.avatarUrl}" alt="${item.login}" />
+                <div>
+                  <div class="login">${item.login}</div>
+                  <div class="meta">${safeName}</div>
+                </div>
+              </div>
+              <button class="danger" data-id="${item.id}" type="button">删除</button>
+            </li>
+          `;
+      }).join("");
+    }
+
+    submitButton.addEventListener("click", async () => {
+      const token = tokenInput.value.trim();
+
+      if (!token) {
+        message.textContent = "请先输入 GitHub token。";
+        return;
+      }
+
+      message.textContent = "正在请求 GitHub 并保存数据...";
+
+      const response = await fetch("/api/github-profile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ token })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        message.textContent = data.error || "请求失败";
+        return;
+      }
+
+      message.textContent = "保存成功";
+      tokenInput.value = "";
+      await loadRecords();
+    });
+
+    records.addEventListener("click", async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLButtonElement)) {
+        return;
+      }
+
+      const id = target.dataset.id;
+      if (!id) {
+        return;
+      }
+
+      const response = await fetch(`/api/records/${id}`, {
+        method: "DELETE"
+      });
+
+      const data = await response.json();
+      message.textContent = response.ok ? "删除成功" : (data.error || "删除失败");
+      await loadRecords();
+    });
+
+    loadRecords().catch((error) => {
+      message.textContent = error.message;
+    });
+  </script>
+</body>
+
+</html>
