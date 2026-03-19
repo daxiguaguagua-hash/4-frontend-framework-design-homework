@@ -200,7 +200,7 @@ Resources:
       DBName: !Ref DatabaseName
       MasterUsername: !Ref DatabaseUsername
       MasterUserPassword: !Ref DatabasePassword
-      DBInstanceClass: db.t3g.micro
+      DBInstanceClass: db.t3.micro
       AllocatedStorage: 20
       PubliclyAccessible: false
       VPCSecurityGroups:
@@ -209,7 +209,7 @@ Resources:
       BackupRetentionPeriod: 1
       MultiAZ: false
       DeletionProtection: false
-      StorageEncrypted: true
+      StorageEncrypted: false
     DeletionPolicy: Snapshot
     UpdateReplacePolicy: Snapshot
 
