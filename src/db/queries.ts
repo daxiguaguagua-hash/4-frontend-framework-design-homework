@@ -1,6 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 
 import { db } from "./client";
+import { ensureDatabaseSchema } from "./init";
 import { githubProfiles } from "./schema";
 
 type SaveGithubProfileInput = {
@@ -12,10 +13,13 @@ type SaveGithubProfileInput = {
 };
 
 export async function listGithubProfiles() {
+  await ensureDatabaseSchema();
   return db.select().from(githubProfiles).orderBy(desc(githubProfiles.id));
 }
 
 export async function saveGithubProfile(input: SaveGithubProfileInput) {
+  await ensureDatabaseSchema();
+
   const rows = await db
     .insert(githubProfiles)
     .values({
@@ -44,6 +48,8 @@ export async function saveGithubProfile(input: SaveGithubProfileInput) {
 }
 
 export async function deleteGithubProfile(id: number) {
+  await ensureDatabaseSchema();
+
   const rows = await db
     .delete(githubProfiles)
     .where(eq(githubProfiles.id, id))
@@ -51,4 +57,3 @@ export async function deleteGithubProfile(id: number) {
 
   return rows[0] ?? null;
 }
-
